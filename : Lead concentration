@@ -1,0 +1,326 @@
+load("K:/Nile/Statistical Analysis and Visualization/Project/lead.RData") 
+View(lead)
+ library(corrplot)
+ library(RColorBrewer)
+ library(dunn.test)
+ library(report)
+ library(car)
+ library(multcomp)
+ library(ggstatsplot)
+ library(ggplot2)
+ library(dunn.test)
+
+
+ #1.Descriptive statistics:
+ str(lead)
+ lead$Area<-factor(lead$Area,labels = c("low","middle","high"))
+ lead$Sex<-factor(lead$Sex, levels = c(1,2), labels = c("male","female")) 
+ lead$Lead_type<-factor(lead$Lead_type, labels = c("first","second"))
+ lead$Exposed<-factor(lead$Exposed, labels = c("no","yes"))
+ summary(lead)
+ table(lead$Sex) 
+ mean(lead$MAXFWT,na.rm = T)
+ cor(lead$MAXFWT,lead$Ld72,use = "complete.obs",method = "pearson")
+ cor(lead$MAXFWT,lead$Ld72,use = "complete.obs",method = "spearman")
+ cor(lead$MAXFWT,lead$Ld73,use = "complete.obs",method = "pearson")
+ cor(lead$MAXFWT,lead$Ld73,use = "complete.obs",method = "spearman")
+ 
+ 
+ 
+ #2.Graphics:
+ barplot(table(lead$Sex),xlab = "sex",ylab = "frequency",ylim = c(0,80))
+ barplot(tapply(lead$MAXFWT,list(lead$Sex),mean,na.rm=T),xlab="sex",ylab="Mean MAXFWT",ylim = c(0,80))
+ hist(lead$Age,xlab = "Age",main = "Distrubtion of Age",xlim = c(0,20),ylim = c(0,50))
+ hist(lead$MAXFWT,xlab = "MAXFWT",main = "Distrubtion of MAXFWT",xlim = c(0,100),ylim = c(0,40))
+ plot(lead$Ld72,lead$MAXFWT,xlab = "Ld72",ylab = "MAXFWT",main = "Scatterplot")
+ plot(MAXFWT~Ld72,data = lead)
+ abline(lm(lead$MAXFWT[lead$Sex=="male"]~lead$Ld72[lead$Sex=="male"]),col=2)
+ abline(lm(lead$MAXFWT[lead$Sex=="female"]~lead$Ld72[lead$Sex=="female"]),col="blue") 
+ Ld72_group<-cut(lead$Ld72, breaks=3, labels= c("low","middle","high"))
+ Ld73_group<-cut(lead$Ld73, breaks=3, labels= c("low","middle","high")) 
+ boxplot(Age~Ld72_group,data = lead,main="Boxplot per Ld72")      
+ boxplot(Age~Ld73_group,data = lead,main="Boxplot per Ld73")
+ 
+ 
+ 
+ #3.Outlier detection:
+ outliers.Ld72<-boxplot(lead$Ld72,plot=T, main="outliers.Ld72")$out
+ outliers.Ld72
+ #There are outlier 
+ 
+ outliers.Ld73<-boxplot(lead$Ld73,plot=T, main="outliers.Ld73")$out
+ outliers.Ld73
+#There is not outlier
+ 
+ outliers.MAXFWT<-boxplot(lead$MAXFWT,plot=T, main="outliers.MAXFWT")$out
+ outliers.MAXFWT 
+ #There are outlier 
+ 
+outliers.age<-boxplot(lead$Age,plot=T, main="outliers.age")$out 
+outliers.age
+#There is not outlier
+
+outliers.Iqf<-boxplot(lead$Iqf,plot=T, main="outliers.Iqf")$out 
+outliers.Iqf
+#There are outlier 
+
+outliers.Totyrs<-boxplot(lead$Totyrs,plot=T, main="outliers.Totyrs")$out 
+outliers.Totyrs
+#There is not outlier
+
+
+
+#4.Testing for normality/ homoscedasticity (for all features mentioned above):
+ #1-lead$Age: 
+ hist(lead$Age, col="green")
+ shapiro.test(lead$Age)
+ qqnorm(lead$MAXFWT, main = "Q-Q Plot of MAXFWT")
+ qqline(lead$MAXFWT, col = "green", lwd = 2)
+ 
+ boxplot(MAXFWT ~ Sex, data = lead,
+         main = "Boxplot of MAXFWT by Sex",
+         xlab = "Sex",
+         ylab = "MAXFWT",
+         col = "lightpink",
+         border = "red")
+ 
+ stripchart(MAXFWT ~ Sex, data = lead,
+            method = "jitter",
+            jitter = 0.1,
+            pch = 19,
+            col = c("red", "blue"),
+            vertical = TRUE,
+            main = "MAXFWT by Sex",
+            xlab = "Sex", ylab = "MAXFWT")   #We used stripchart to see how the F Value came
+ 
+ car::leveneTest(MAXFWT ~ Sex, data = lead)
+ #Not normal distribution
+ #We have enough evidence to reject the null hypothesis and support alternative hypothesis because p-value<0.05
+ 
+ 
+#2-lead$Iqf:
+ hist(lead$Iqf, col="purple")
+ shapiro.test(lead$Iqf)
+ qqnorm(lead$Iqf, main = "Q-Q Plot of Iqf")
+ qqline(lead$Iqf, col = "purple", lwd = 2)
+ #Normal distribution
+ #We do not have enough evidence to reject the null hypothesis and support alternative hypothesis because p-value>0.05   
+ 
+ 
+#3-lead$Ld72: 
+ hist(lead$Ld72, col="red")
+ shapiro.test(lead$Ld72) 
+ qqnorm(lead$Ld72, main = "Q-Q Plot of Ld72")
+ qqline(lead$Ld72, col = "red", lwd = 2)
+ 
+ par(mfrow = c(2, 2))
+ boxplot(Ld72 ~ Sex, data = lead,
+         main = "Boxplot of Ld72 by Sex",
+         xlab = "Sex",
+         ylab = "Ld72",
+         col = "lightblue",
+         border = "blue")
+ 
+ stripchart(Ld72 ~ Sex, data = lead,
+            method = "jitter",
+            jitter = 0.1,
+            pch = 19,
+            col = c("red", "blue"),
+            vertical = TRUE,
+            main = "Stripchart of Ld72 by Sex",
+            xlab = "Sex", ylab = "Ld72")     
+ 
+ car::leveneTest(Ld72~ Sex, data = lead)
+ #Not normal distribution
+ #We have enough evidence to reject the null hypothesis and support alternative hypothesis because p-value<0.05
+ 
+#4-lead$Ld73:
+ hist(lead$Ld73, col="blue")
+ shapiro.test(lead$Ld73) 
+ qqnorm(lead$Ld73, main = "Q-Q Plot of Ld73")
+ qqline(lead$Ld73, col = "blue", lwd = 2)
+ 
+ boxplot(Ld73 ~ Sex, data = lead,
+         main = "Boxplot of Ld73 by Sex",
+         xlab = "Sex",
+         ylab = "Ld73",
+         col = "lightgreen",
+         border = "darkgreen")
+ 
+ stripchart(Ld73 ~ Sex, data = lead,
+            method = "jitter",
+            jitter = 0.1,
+            pch = 19,
+            col = c("red", "blue"),
+            vertical = TRUE,
+            main = "Ld73 by Sex",
+            xlab = "Sex", ylab = "Ld73")
+ 
+ car::leveneTest(Ld73~ Sex, data = lead)
+ #Not normal distribution
+ #We have enough evidence to reject the null hypothesis and support alternative hypothesis because p-value<0.05
+ 
+#5-lead$Totyrs: 
+ hist(lead$Totyrs)
+ shapiro.test(lead$Totyrs)   
+ #Not normal distribution
+ #We have enough evidence to reject the null hypothesis and support alternative hypothesis because p-value<0.05
+ 
+#6-lead$MAXFWT: 
+ hist(lead$MAXFWT)
+ shapiro.test(lead$MAXFWT)  
+ #Not normal distribution
+ #We have enough evidence to reject the null hypothesis and support alternative hypothesis because p-value<0.05
+ 
+ 
+ #Testing homoscedasticity 
+ leveneTest(Ld72~Sex, data=lead)
+ leveneTest(Ld73~Sex, data=lead)
+ leveneTest(MAXFWT~Sex, data=lead)
+ 
+ 
+ bartlett.test(Iqf~Sex, data=lead)
+
+ 
+ library(dplyr)
+ library(car)
+ 
+ # --------- 5. Confidence Intervals ---------
+ 
+ ci_results <- lead %>%
+   group_by(Sex) %>%
+   summarise(
+     Mean = mean(MAXFWT, na.rm = TRUE),
+     SD = sd(MAXFWT, na.rm = TRUE),
+     N = sum(!is.na(MAXFWT))
+   ) %>%
+   mutate(
+     CI_90_Lower = Mean - qt(0.95, df = N - 1) * SD / sqrt(N),
+     CI_90_Upper = Mean + qt(0.95, df = N - 1) * SD / sqrt(N),
+     
+     CI_95_Lower = Mean - qt(0.975, df = N - 1) * SD / sqrt(N),
+     CI_95_Upper = Mean + qt(0.975, df = N - 1) * SD / sqrt(N),
+     
+     CI_99_Lower = Mean - qt(0.995, df = N - 1) * SD / sqrt(N),
+     CI_99_Upper = Mean + qt(0.995, df = N - 1) * SD / sqrt(N)
+   )
+ 
+ print(ci_results)
+ 
+ # --------- 6. Hypothesis Testing ---------
+ 
+ ###1) ❶ الفرق بين الذكور والإناث في MAXFWT
+ 
+ 
+ par(mfrow = c(1, 2))
+ ##Normality tests
+ # Histogram for males
+ hist(lead$MAXFWT[lead$Sex == "male"],
+      main = "Histogram of MAXFWT (Male)",
+      xlab = "MAXFWT",
+      col = "red",
+      border = "black")
+ 
+ # Histogram for females
+ hist(lead$MAXFWT[lead$Sex == "female"],
+      main = "Histogram of MAXFWT (Female)",
+      xlab = "MAXFWT",
+      col = "blue",
+      border = "black")
+ 
+ # QQ plot for males
+ qqnorm(lead$MAXFWT[lead$Sex == "male"], main = "QQ Plot - Males")
+ qqline(lead$MAXFWT[lead$Sex == "male"], col = "red")
+ 
+ # QQ plot for females
+ qqnorm(lead$MAXFWT[lead$Sex == "female"], main = "QQ Plot - Females")
+ qqline(lead$MAXFWT[lead$Sex == "female"], col = "blue")
+ 
+ # Shapiro-Wilk test for each group
+ shapiro.test(lead$MAXFWT[lead$Sex == "male"]) #male: p = 0.005127 (non-normal)
+ shapiro.test(lead$MAXFWT[lead$Sex == "female"]) #female: p = 0.2299 (Normal) 
+ 
+ #at least one non-normal ---> Non-parametric 
+ wilcox.test(MAXFWT ~ Sex, data = lead) #p-value = 0.1399 Non-significant
+ 
+ 
+ ## Variance test
+ #Boxplot 
+ boxplot(MAXFWT ~ factor(Sex, labels = c("Male", "Female")),
+         data = lead,
+         col = c("red", "blue"),
+         main = "MAXFWT by Sex",
+         ylab = "MAXFWT",
+         xlab = "Sex")
+ 
+ #Levene test
+ car::leveneTest(MAXFWT ~ Sex, data = lead)
+ 
+ # t-test
+ t.test(MAXFWT ~ Sex, data = lead, var.equal = TRUE)
+ 
+ # ❷ الفرق بين Ld72 > 40 و <= 40 في MAXFWT
+ 
+ # إنشاء متغير المجموعة
+ lead$Ld72_group_40 <- ifelse(lead$Ld72 > 40, "high", "low")
+ lead$Ld72_group_40 <- factor(lead$Ld72_group_40)
+ 
+ # اختبار t بافتراض عدم تساوي التباين
+ t.test(MAXFWT ~ Ld72_group_40, data = lead, var.equal = FALSE, alternative = "less")
+ 
+ # اختبار ويلكوكسون (non-parametric)
+ wilcox.test(MAXFWT ~ Ld72_group_40, data = lead, alternative = "less")
+ 
+ #Hypothesis that MAXWT is different between the different Lead types with the different genders  
+ 
+ ### 4-group factor
+ lead$Group4 <- interaction(lead$Sex, lead$Lead_type)
+ 
+ ##Normality
+ #Shapiro-test
+ by(lead$MAXFWT, lead$Group4, shapiro.test)   #Non-normality of 2 out of 4
+ 
+ #Kruskal.test
+ kruskal.test(MAXFWT ~ Group4, data = lead)
+ 
+ dunn.test(lead$MAXFWT, lead$Group4, method = "bonferroni", list = TRUE)
+ 
+ 
+ 
+ #7-Linear Model
+ 
+ model <- lm(MAXFWT ~ Ld72 + factor(Sex) + Age + Totyrs, data = lead)
+ summary(model)
+ 
+ par(mfrow = c(2, 2))
+ avPlots(model)   # Ld72 & Age are Significant  While Sex and Totyrs are Non-Significant b nearly equal zero(can't explain the model) aligns with p-values 
+ plot(model)  # Residual diagnostics
+ 
+ #Tried a second model after removing non-significant predictors 
+ model_2 <- lm(MAXFWT ~ Ld72 + Age, data = lead)
+ summary(model_2)   #Slightly smaller error  and slightly higher R2
+ 
+ #Bonus
+ confint(model_2, "Ld72", level = 0.95)    #Interval don't include zero so we can reject the null
+ model_Ld73 <- lm(MAXFWT ~ Ld73 + Age, data = lead)
+ summary(model_Ld73)
+ 
+ new_data <- data.frame(
+   Ld73 = 100,
+   Age = mean(lead$Age, na.rm = TRUE)  # Mean age عشان اخليه ثابت
+ )
+ 
+ prediction <- predict(model_Ld73, newdata = new_data,interval = "confidence", level = 0.95)
+ print(prediction)
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
